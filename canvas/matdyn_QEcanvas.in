@@ -1,0 +1,14 @@
+ &input
+    asr='simple',
+    {masses}
+    flfrc='{name}.fc', 
+    flfrq='{name}.freqs',
+    flvec='{name}.vecs',
+    dos={dos},
+    fldos='{name}.dos'
+    deltaE=1.d0,
+    nk1={nk1}, nk2={nk2}, nk3={nk3},
+    q_in_band_form=.true. 
+ /
+{len}
+{path}

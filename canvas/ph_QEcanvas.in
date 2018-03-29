@@ -1,0 +1,11 @@
+test_phonon
+
+ &inputph
+   outdir='./tmp/',
+   prefix='{name}',
+   ldisp=.true.
+   nq1={nq1},nq2={nq2},nq3={nq3}  
+   fildyn='QE.dynmat',
+   tr2_ph=1.0d-14,
+   {masses}
+ /

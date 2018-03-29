@@ -1,0 +1,46 @@
+&control
+    calculation='{calculation type}'
+    restart_mode='{restart mode}',
+    prefix='{name}',
+    tstress = .true.
+    tprnfor = .true.
+    pseudo_dir = '{pseudo dir}',
+    outdir='tmp'
+    etot_conv_thr = 1.0D-6
+    forc_conv_thr = 1.0D-5
+ /
+ &system
+    ibrav=  0,  
+    nat=  {nat}, 
+    ntyp= {ntyp},
+    celldm(1)={celldm},
+    ecutwfc ={ecutwfc}, 
+    ecutrho={ecutrho}, nbnd={nbnd}
+    occupations = '{occupations}',
+    degauss = 0.01,
+ /
+ &electrons
+    mixing_mode = 'plain'
+    mixing_beta = 0.5
+    conv_thr =  1.0d-12
+ /
+ &ions
+    ion_dynamics='bfgs'
+ /
+ &cell
+    cell_dynamics='bfgs'
+    wmass={wmass}
+    cell_dofree='all'
+ /
+
+ATOMIC_SPECIES
+{atomic species}
+
+CELL_PARAMETERS (alat)
+{cell param}
+
+ATOMIC_POSITIONS (crystal)
+{atomic positions}
+
+K_POINTS {automatic}
+ {k points} 0 0 0
