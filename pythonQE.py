@@ -76,6 +76,16 @@ class pwcalc:
 
         return inname
 
+    def from_pylada(self, struct):
+        self.cell = struct.cell
+        self.atomic_pos = {}
+        for atom in struct:
+            if self.atomic_pos.has_key(atom.type):
+                self.atomic_pos[atom.type].append(list(atom.pos))
+            else:
+                self.atomic_pos[atom.type] = [list(atom.pos)]
+
+
     def read_cell(self):
         inname = self.name + '_' + self.calc_type
         with open(inname + '.out') as f:
@@ -222,7 +232,7 @@ class matcalc:
         return inname
 
     def read_eig(self):
-        with open("PH/c.vecs") as f:
+        with open(self.name + ".vecs") as f:
             s = f.read()
         q = re.findall(" *q = *([^ ]*) *([^ ]*) *([^ ]*)\n", s)
         all_freqs = re.findall(" *freq \(.*\) *= *(.*) \[THz\]", s)
