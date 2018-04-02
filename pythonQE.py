@@ -234,10 +234,10 @@ class matcalc:
     def read_eig(self):
         with open(self.name + ".vecs") as f:
             s = f.read()
-        q = re.findall(" *q = *([^ ]*) *([^ ]*) *([^ ]*)\n", s)
+        qs = re.findall(" *q = *([^ ]*) *([^ ]*) *([^ ]*)\n", s)
         all_freqs = re.findall(" *freq \(.*\) *= *(.*) \[THz\]", s)
         all_vecs = re.findall(" \( {1,2}(.*) {2,3}(.*) {4,5}(.*) {2,3}(.*) {4,5}(.*) {2,3}(.*)   \)", s)
-        dim = len(all_freqs)/len(q)
+        dim = len(all_freqs)/len(qs)
         freqs = []
         for i,freq in enumerate(all_freqs):
             if i%dim == 0:
