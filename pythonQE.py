@@ -6,6 +6,8 @@ import uuid
 from subprocess import call
 from copy import deepcopy
 
+MODPATH = os.path.dirname(os.path.realpath(__file__))
+
 class pwcalc:
     def __init__(self):
         self.type = 'pw.x'
@@ -25,7 +27,7 @@ class pwcalc:
 
 
     def write_in(self):
-        with open('/u/cb/cr/felixtherrien/scratch/pythonQE/canvas/pw_QEcanvas.in') as f:
+        with open(MODPATH + '/canvas/pw_QEcanvas.in') as f:
             s = f.read()
         s = re.sub("{calculation type}", self.calc_type, s)
         s = re.sub("{restart mode}", self.restart_mode, s)
@@ -144,7 +146,7 @@ class phcalc:
 
 
     def write_in(self):
-        with open('/u/cb/cr/felixtherrien/scratch/pythonQE/canvas/ph_QEcanvas.in') as f:
+        with open(MODPATH + '/canvas/ph_QEcanvas.in') as f:
             s = f.read()
         s = re.sub("{name}", self.name, s)
         s = re.sub("{ldisp}", '.true.' if self.ldisp else '.false.' , s)
@@ -181,7 +183,7 @@ class q2rcalc:
         self.name = "si"
 
     def write_in(self):
-        with open('/u/cb/cr/felixtherrien/scratch/pythonQE/canvas/q2r_QEcanvas.in') as f:
+        with open(MODPATH + '/canvas/q2r_QEcanvas.in') as f:
             s = f.read()
         s = re.sub("{name}", self.name, s)
 
@@ -216,7 +218,7 @@ class matcalc:
             [0.5000000,   0.5000000,   0.5000000, 1 ]]
 
     def write_in(self):
-        with open('/u/cb/cr/felixtherrien/scratch/pythonQE/canvas/matdyn_QEcanvas.in') as f:
+        with open(MODPATH + '/canvas/matdyn_QEcanvas.in') as f:
             s = f.read()
         s = re.sub("{name}", self.name, s)
         s = re.sub("{dos}", '.true.' if self.dos else '.false.' , s)
@@ -285,7 +287,7 @@ class dyncalc:
         self.name = "si"
         
     def write_in(self):
-        with open('/u/cb/cr/felixtherrien/scratch/pythonQE/canvas/dynmat_QEcanvas.in') as f:
+        with open(MODPATH + '/canvas/dynmat_QEcanvas.in') as f:
             s = f.read()
         s = re.sub("{name}", self.name, s)
         
