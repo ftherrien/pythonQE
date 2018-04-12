@@ -39,7 +39,7 @@ ATOMIC_SPECIES
 CELL_PARAMETERS (alat)
 {cell param}
 
-ATOMIC_POSITIONS (crystal)
+ATOMIC_POSITIONS (alat)
 {atomic positions}
 
 K_POINTS {automatic}

@@ -97,14 +97,16 @@ class pwcalc:
     def read_atomic_pos(self):
         inname = self.name + '_' + self.calc_type
         with open(inname + '.out') as f:
-            s = f.read()
-        search = "ATOMIC_POSITIONS.*"
-        nat = sum([len(i) for i in self.atomic_pos])
-        for i in range(nat):
-            search += "\n(.*)"
-        atomic_pos = {}
+            s = f.readlines()
+        
+        nat = sum([len(i) for i in self.atomic_pos.itervalues()])
 
-        for line in re.findall(search,s)[-1]:
+        for i, line in enumerate(s):
+            if re.search("ATOMIC_POSITIONS", line):
+               lineNum = i     
+        
+        atomic_pos = {}
+        for line in s[lineNum + 1:lineNum + nat + 1]:
             elem = line.split()
             if atomic_pos.has_key(elem[0]):
                 atomic_pos[elem[0]].append([float(num) for num in elem[1:]])
@@ -135,17 +137,28 @@ class phcalc:
         self.type = 'ph.x'
         self.calc_type = "ph"
         self.name = "si"
+        self.ldisp = True
         self.masses = {'Si':28.0855}
         self.qpoints = [8,8,8]
+        self.qlist = None
 
 
     def write_in(self):
         with open('/u/cb/cr/felixtherrien/scratch/pythonQE/canvas/ph_QEcanvas.in') as f:
             s = f.read()
         s = re.sub("{name}", self.name, s)
+        s = re.sub("{ldisp}", '.true.' if self.ldisp else '.false.' , s)
         s = re.sub("{nq1}", str(self.qpoints[0]), s)
         s = re.sub("{nq2}", str(self.qpoints[1]), s)
         s = re.sub("{nq3}", str(self.qpoints[2]), s)
+        if not self.ldisp:
+            qlist = ""
+            for line in self.qlist:
+                qlist += ' '.join([str(i) for i in line]) + '\n'
+
+            s = re.sub("{qlist}", qlist, s)
+        else:
+            s = re.sub("{qlist}", "", s)
         
         masses = ""
         for i, mass in enumerate(self.masses.itervalues()):
@@ -235,6 +248,59 @@ class matcalc:
         with open(self.name + ".vecs") as f:
             s = f.read()
         qs = re.findall(" *q = *([^ ]*) *([^ ]*) *([^ ]*)\n", s)
+        qs = [[float(i) for i in q] for q in qs]
+        all_freqs = re.findall(" *freq \(.*\) *= *(.*) \[THz\]", s)
+        all_vecs = re.findall(" \( {1,2}(.*) {2,3}(.*) {4,5}(.*) {2,3}(.*) {4,5}(.*) {2,3}(.*)   \)", s)
+        dim = len(all_freqs)/len(qs)
+        freqs = []
+        for i,freq in enumerate(all_freqs):
+            if i%dim == 0:
+                freqs.append([float(freq)])
+            else:
+                freqs[-1].append(float(freq))
+        
+        vecs = []
+        for i,vec in enumerate(all_vecs):
+            vec_part = []
+            for j,elem in  enumerate(vec):
+                if j%2 == 0:
+                    vec_part.append(float(elem))
+                else:
+                    vec_part[-1] = vec_part[-1] + float(elem)*1j
+            
+            if i%(dim*dim/3) == 0:
+                vecs.append([vec_part])
+            elif i%(dim/3) == 0:
+                vecs[-1].append(vec_part)
+            else:
+                vecs[-1][-1].extend(vec_part)
+        
+        return qs, freqs, vecs
+
+class dyncalc:
+
+    def __init__(self):
+        self.type = 'dynmat.x'
+        self.calc_type = "dynmat"
+        self.name = "si"
+        
+    def write_in(self):
+        with open('/u/cb/cr/felixtherrien/scratch/pythonQE/canvas/dynmat_QEcanvas.in') as f:
+            s = f.read()
+        s = re.sub("{name}", self.name, s)
+        
+        inname = self.name + '_' + self.calc_type #+ str(uuid.uuid4())
+
+        with open(inname + '.in', 'w') as f:
+            f.write(s)
+
+        return inname
+
+    def read_eig(self):
+        with open(self.name + ".vecs") as f:
+            s = f.read()
+        qs = re.findall(" *q = *([^ ]*) *([^ ]*) *([^ ]*)\n", s)
+        qs = [[float(i) for i in q] for q in qs]
         all_freqs = re.findall(" *freq \(.*\) *= *(.*) \[THz\]", s)
         all_vecs = re.findall(" \( {1,2}(.*) {2,3}(.*) {4,5}(.*) {2,3}(.*) {4,5}(.*) {2,3}(.*)   \)", s)
         dim = len(all_freqs)/len(qs)
@@ -266,15 +332,22 @@ class matcalc:
 def submit_jobs(*calcs,**param):
     name = param.get('name','QErun.sh')
     np = param.get('np',16)
+    
     with open(name,'w') as f:
         f.write('#! /bin/bash\n')
         for calc in calcs:
             inname = calc.write_in()
             if np > 1:
-                f.write('srun ' + '-n ' + str(np) + 
-                        ' ' + calc.type +
-                        ' < ' + inname + '.in' +
-                        ' > ' + inname + '.out\n' )
+                if (calc.type == "pw.x"):
+                    f.write('srun ' + '-n ' + str(np) +
+                            ' ' + calc.type +
+                            ' < ' + inname + '.in' +
+                            ' > ' + inname + '.out\n' )
+                else:
+                    f.write('srun ' + '-n ' + str(np) + 
+                            ' ' + calc.type +
+                            ' < ' + inname + '.in' +
+                            ' > ' + inname + '.out\n' )
             else: 
                 f.write(calc.type +
                         ' < ' + inname + '.in' +
