@@ -339,7 +339,7 @@ def submit_jobs(*calcs,**param):
         f.write('#! /bin/bash\n')
         for calc in calcs:
             inname = calc.write_in()
-            if np > 1:
+            if True:
                 if (calc.type == "pw.x"):
                     f.write('srun ' + '-n ' + str(np) +
                             ' ' + calc.type +
@@ -350,7 +350,7 @@ def submit_jobs(*calcs,**param):
                             ' ' + calc.type +
                             ' < ' + inname + '.in' +
                             ' > ' + inname + '.out\n' )
-            else: 
+            else: # TODO: It seems like not calling srun does not work
                 f.write(calc.type +
                         ' < ' + inname + '.in' +
                         ' > ' + inname + '.out\n' )
