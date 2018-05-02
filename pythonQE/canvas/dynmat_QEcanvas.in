@@ -1,0 +1,6 @@
+&input
+     fildyn='QE.{name}.dynmat',
+     asr='simple',  
+     filout='{name}.vecs',
+/
+
