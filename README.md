@@ -1,6 +1,6 @@
-# Python__QE__
+# Python**QE**
 
-Python__QE__ is a simple python interface for Quantum Espresso
+Python**QE** is a simple python interface for Quantum Espresso
 
 
 ## Install
