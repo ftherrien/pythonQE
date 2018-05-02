@@ -1,5 +1,11 @@
-PythonQE is a simple python interface to Quantum Espresso
+# Python_QE_
 
-To install simply run:
+## Python_QE_ is a simple python interface for Quantum Espresso
 
-pip install -e git+https://github.com/ftherrien/pythonQE.git
+To install:
+
+* With HTTPS:
+'pip install -e git+https://github.com/ftherrien/pythonQE.git#egg=pythonQE'
+
+* With ssh:
+'pip install -e git+git@github.com:ftherrien/pythonQE.git#egg=pythonQE'
