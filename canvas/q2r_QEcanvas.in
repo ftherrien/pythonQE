@@ -1,5 +1,5 @@
 &input
- fildyn='QE.dynmat',
- zasr='simple'
+ fildyn='QE.{name}.dynmat',
+ zasr='no'
  flfrc='{name}.fc'
 /
