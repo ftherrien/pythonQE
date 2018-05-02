@@ -5,6 +5,7 @@ import os
 import uuid
 from subprocess import call
 from copy import deepcopy
+from pylada.crystal import Structure
 
 MODPATH = os.path.dirname(os.path.realpath(__file__))
 
@@ -87,6 +88,12 @@ class pwcalc:
             else:
                 self.atomic_pos[atom.type] = [list(atom.pos)]
 
+    def to_pylada(self):
+        A = Structure(self.cell)
+        for elem in self.atomic_pos:
+            for pos in self.atomic_pos[elem]:
+                A.add_atom(pos[0],pos[1],pos[2],elem)
+        return A
 
     def read_cell(self):
         inname = self.name + '_' + self.calc_type
