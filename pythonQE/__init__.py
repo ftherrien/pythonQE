@@ -1,1 +1,1 @@
-import pythonQE
+from pythonQE import *

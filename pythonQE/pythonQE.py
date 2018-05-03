@@ -9,6 +9,12 @@ from pylada.crystal import Structure
 
 MODPATH = os.path.dirname(os.path.realpath(__file__))
 
+def int2str(n):
+    return '%d'%n
+
+def fl2str(n):
+    return '% 10.6F'%n
+
 class pwcalc:
     def __init__(self):
         self.type = 'pw.x'
@@ -23,6 +29,7 @@ class pwcalc:
         self.occupations = "fixed"
         self.masses = {'Si':28.0855}
         self.cell = [[0.5, 0.5, 0],[0.5, 0, 0.5],[0, 0.5, 0.5]]
+        self.unit = "alat"
         self.atomic_pos = {'Si':[[0,0,0],[0.25,0.25,0.25]]}
         self.kpoints = [8,8,8]
 
@@ -34,10 +41,11 @@ class pwcalc:
         s = re.sub("{restart mode}", self.restart_mode, s)
         s = re.sub("{name}", self.name, s)
         s = re.sub("{pseudo dir}", self.pseudo_dir, s)
-        s = re.sub("{celldm}", str(self.celldm), s)
-        s = re.sub("{ecutwfc}", str(self.ecutwfc), s)
-        s = re.sub("{ecutrho}", str(self.ecutrho), s)
-        s = re.sub("{nbnd}", str(self.nbnd), s)
+        s = re.sub("{unit}", self.unit, s)
+        s = re.sub("{celldm}", fl2str(self.celldm), s)
+        s = re.sub("{ecutwfc}", fl2str(self.ecutwfc), s)
+        s = re.sub("{ecutrho}", fl2str(self.ecutrho), s)
+        s = re.sub("{nbnd}", int2str(self.nbnd), s)
         s = re.sub("{occupations}", self.occupations, s)
         
         atomic_pos = ""
@@ -49,7 +57,7 @@ class pwcalc:
             ntyp += 1
             if self.masses.has_key(atom_type):
                 pseudoname = os.path.basename(glob.glob(self.pseudo_dir + '/' + atom_type + '*')[0]) 
-                atomic_spec += (atom_type + ' ' + str(self.masses[atom_type]) + ' ' +
+                atomic_spec += (atom_type + ' ' + fl2str(self.masses[atom_type]) + ' ' +
                                 pseudoname +
                                 '\n')
             else:
@@ -58,19 +66,19 @@ class pwcalc:
                 wmass += self.masses[atom_type]
                 nat += 1
                 atomic_pos += (atom_type + ' ' +
-                               ' '.join([str(i) for i in atom]) + '\n')
+                               ' '.join([fl2str(i) for i in atom]) + '\n')
                 
         cell = ""
         for line in self.cell:
-            cell += ' '.join([str(i) for i in line]) + '\n'
+            cell += ' '.join([fl2str(i) for i in line]) + '\n'
         
-        s = re.sub("{nat}", str(nat), s)
-        s = re.sub("{ntyp}", str(ntyp), s)
-        s = re.sub("{wmass}", str(wmass), s)
+        s = re.sub("{nat}", int2str(nat), s)
+        s = re.sub("{ntyp}", int2str(ntyp), s)
+        s = re.sub("{wmass}", fl2str(wmass), s)
         s = re.sub("{atomic species}", atomic_spec, s)
         s = re.sub("{cell param}", cell, s)
         s = re.sub("{atomic positions}", atomic_pos, s)
-        s = re.sub("{k points}", ' '.join([str(i) for i in self.kpoints]), s)
+        s = re.sub("{k points}", ' '.join([int2str(i) for i in self.kpoints]), s)
 
         inname = self.name + '_' + self.calc_type #+ str(uuid.uuid4())
 
@@ -81,18 +89,38 @@ class pwcalc:
 
     def from_pylada(self, struct):
         self.cell = struct.cell
+        
         self.atomic_pos = {}
-        for atom in struct:
-            if self.atomic_pos.has_key(atom.type):
-                self.atomic_pos[atom.type].append(list(atom.pos))
-            else:
-                self.atomic_pos[atom.type] = [list(atom.pos)]
+        if self.unit == "alat":
+            for atom in struct:
+                if self.atomic_pos.has_key(atom.type):
+                    self.atomic_pos[atom.type].append(list(atom.pos))
+                else:
+                    self.atomic_pos[atom.type] = [list(atom.pos)]
+        elif self.unit == "crystal":
+            icell = np.linalg.inv(self.cell)
+            for atom in struct:
+                if self.atomic_pos.has_key(atom.type):
+                    self.atomic_pos[atom.type].append(list(atom.pos.dot(icell)))
+                else:
+                    self.atomic_pos[atom.type] = [list(atom.pos.dot(icell))]
+        else:
+            raise RuntimeError("Wrong unit must be alat or crystal")
+
 
     def to_pylada(self):
         A = Structure(self.cell)
-        for elem in self.atomic_pos:
-            for pos in self.atomic_pos[elem]:
-                A.add_atom(pos[0],pos[1],pos[2],elem)
+        if self.unit == "alat":
+            for elem in self.atomic_pos:
+                for pos in self.atomic_pos[elem]:
+                    A.add_atom(pos[0],pos[1],pos[2],elem)
+        elif self.unit == "crystal":
+            for elem in self.atomic_pos:
+                for pos in self.atomic_pos[elem]:
+                    pos.dot(self.cell)
+                    A.add_atom(pos[0],pos[1],pos[2],elem)
+        else:
+            raise RuntimeError("Wrong unit must be alat or crystal")
         return A
 
     def read_cell(self):
@@ -157,13 +185,13 @@ class phcalc:
             s = f.read()
         s = re.sub("{name}", self.name, s)
         s = re.sub("{ldisp}", '.true.' if self.ldisp else '.false.' , s)
-        s = re.sub("{nq1}", str(self.qpoints[0]), s)
-        s = re.sub("{nq2}", str(self.qpoints[1]), s)
-        s = re.sub("{nq3}", str(self.qpoints[2]), s)
+        s = re.sub("{nq1}", int2str(self.qpoints[0]), s)
+        s = re.sub("{nq2}", int2str(self.qpoints[1]), s)
+        s = re.sub("{nq3}", int2str(self.qpoints[2]), s)
         if not self.ldisp:
             qlist = ""
             for line in self.qlist:
-                qlist += ' '.join([str(i) for i in line]) + '\n'
+                qlist += ' '.join([fl2str(i) for i in line]) + '\n'
 
             s = re.sub("{qlist}", qlist, s)
         else:
@@ -171,7 +199,7 @@ class phcalc:
         
         masses = ""
         for i, mass in enumerate(self.masses.itervalues()):
-            masses += "amass(%d)=%f\n"%(i+1,mass)
+            masses += "amass(%d)=%s\n"%(i+1,fl2str(mass))
 
         s = re.sub("{masses}", masses, s)
 
@@ -229,20 +257,21 @@ class matcalc:
             s = f.read()
         s = re.sub("{name}", self.name, s)
         s = re.sub("{dos}", '.true.' if self.dos else '.false.' , s)
-        s = re.sub("{nk1}", str(self.kpoints[0]), s)
-        s = re.sub("{nk2}", str(self.kpoints[1]), s)
-        s = re.sub("{nk3}", str(self.kpoints[2]), s)
-        s = re.sub("{len}", str(len(self.path)), s)
+        s = re.sub("{nk1}", int2str(self.kpoints[0]), s)
+        s = re.sub("{nk2}", int2str(self.kpoints[1]), s)
+        s = re.sub("{nk3}", int2str(self.kpoints[2]), s)
+        s = re.sub("{len}", int2str(len(self.path)), s)
 
         path = ""
         for line in self.path:
-            path += ' '.join([str(i) for i in line]) + '\n'
+            path += ' '.join([fl2str(i) for i in line[:3]]) \
+                     + ' ' + int2str(line[-1])+ '\n'
 
         s = re.sub("{path}", path, s)
 
         masses = ""
         for i, mass in enumerate(self.masses.itervalues()):
-            masses += "amass(%d)=%f\n"%(i+1,mass)
+            masses += "amass(%d)=%s\n"%(i+1,fl2str(mass))
 
         s = re.sub("{masses}", masses, s)
 
@@ -348,12 +377,12 @@ def submit_jobs(*calcs,**param):
             inname = calc.write_in()
             if True:
                 if (calc.type == "pw.x"):
-                    f.write('srun ' + '-n ' + str(np) +
+                    f.write('srun ' + '-n ' + int2str(np) +
                             ' ' + calc.type +
                             ' < ' + inname + '.in' +
                             ' > ' + inname + '.out\n' )
                 else:
-                    f.write('srun ' + '-n ' + str(np) + 
+                    f.write('srun ' + '-n ' + int2str(np) + 
                             ' ' + calc.type +
                             ' < ' + inname + '.in' +
                             ' > ' + inname + '.out\n' )
