@@ -5,7 +5,7 @@
     tstress = .true.
     tprnfor = .true.
     pseudo_dir = '{pseudo dir}',
-    outdir='tmp'
+    outdir='{name}.tmp'
     etot_conv_thr = 1.0D-6
     forc_conv_thr = 1.0D-5
  /

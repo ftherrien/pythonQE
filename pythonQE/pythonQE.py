@@ -368,7 +368,7 @@ class dyncalc:
         return qs, freqs, vecs
 
 def submit_jobs(*calcs,**param):
-    name = param.get('name','QErun.sh')
+    name = param.get('name','QErun_' + str(uuid.uuid4()) + '.sh')
     np = param.get('np',16)
     
     with open(name,'w') as f:
@@ -392,6 +392,7 @@ def submit_jobs(*calcs,**param):
                         ' > ' + inname + '.out\n' )
     call(['chmod','777', name])
     call('./' + name)
+    call(['rm', name])
 
 if __name__ == "__main__":
     pwrelax = pwcalc()
