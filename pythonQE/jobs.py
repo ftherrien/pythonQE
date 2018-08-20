@@ -76,7 +76,7 @@ class pwcalc:
         s = re.sub("{ntyp}", int2str(ntyp), s)
         s = re.sub("{wmass}", fl2str(wmass), s)
         s = re.sub("{atomic species}", atomic_spec, s)
-        s = re.sub("{cell param}", cell, s)
+        s = re.sub("{cell param}", cell.T, s)
         s = re.sub("{atomic positions}", atomic_pos, s)
         s = re.sub("{k points}", ' '.join([int2str(i) for i in self.kpoints]), s)
 
@@ -101,9 +101,9 @@ class pwcalc:
             icell = np.linalg.inv(self.cell)
             for atom in struct:
                 if self.atomic_pos.has_key(atom.type):
-                    self.atomic_pos[atom.type].append(list(atom.pos.dot(icell)))
+                    self.atomic_pos[atom.type].append(list(icell.dot(atom.pos)))
                 else:
-                    self.atomic_pos[atom.type] = [list(atom.pos.dot(icell))]
+                    self.atomic_pos[atom.type] = [list(icell.dot(atom.pos))]
         else:
             raise RuntimeError("Wrong unit must be alat or crystal")
 
@@ -117,7 +117,7 @@ class pwcalc:
         elif self.unit == "crystal":
             for elem in self.atomic_pos:
                 for pos in self.atomic_pos[elem]:
-                    pos.dot(self.cell)
+                    self.cell.dos(pos)
                     A.add_atom(pos[0],pos[1],pos[2],elem)
         else:
             raise RuntimeError("Wrong unit must be alat or crystal")
@@ -129,7 +129,7 @@ class pwcalc:
             s = f.read()
         cell = re.findall("CELL_PARAMETERS.*\n(.*)\n(.*)\n(.*)\n{2}",s)[-1]
         cell = [[float(num) for num in line.split()] for line in cell]
-        return cell
+        return cell.T
 
     def read_atomic_pos(self):
         inname = self.name + '_' + self.calc_type
@@ -238,7 +238,7 @@ class matcalc:
         self.dos = False
         self.masses = {'Si':28.0855}
         self.kpoints = [6,6,6]
-        self.path = [
+        self.path = np.array([
             [0.0000000,   0.0000000,   0.0000000, 10],
             [0.7500000,   0.7500000,   0.0000000, 1 ],
             [0.2500000,   1.0000000,   0.2500000, 10],
@@ -250,7 +250,7 @@ class matcalc:
             [0.5000000,   1.0000000,   0.0000000, 10],
             [0.0000000,   1.0000000,   0.0000000, 10],
             [0.5000000,   1.0000000,   0.0000000, 10],
-            [0.5000000,   0.5000000,   0.5000000, 1 ]]
+            [0.5000000,   0.5000000,   0.5000000, 1 ]]).T
 
     def write_in(self):
         with open(MODPATH + '/canvas/matdyn_QEcanvas.in') as f:
@@ -263,7 +263,7 @@ class matcalc:
         s = re.sub("{len}", int2str(len(self.path)), s)
 
         path = ""
-        for line in self.path:
+        for line in self.path.T:
             path += ' '.join([fl2str(i) for i in line[:3]]) \
                      + ' ' + int2str(line[-1])+ '\n'
 

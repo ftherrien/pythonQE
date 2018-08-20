@@ -7,29 +7,27 @@ def reciprocal(cell):
     rec = deepcopy(cell)
     V = np.linalg.det(cell)
     for i in range(3):
-        rec[i,:] = 2*np.pi/V*np.cross(cell[(i+1)%3,:], cell[(i+2)%3,:])
+        rec[i,:] = 2*np.pi/V*np.cross(cell[:,(i+1)%3], cell[:,(i+2)%3])
     return rec
 
 def explicit_path(path):
     epath = []
-    for i,line in enumerate(path[:-1]):
+    for i,line in enumerate(path[:-1].T):
         for j in range(len(line))[:-1]:
             if j == 0:
-                linpath = np.reshape(np.linspace(line[j],path[i+1][j],int(line[-1])+1), (1,int(line[-1])+1))
+                linpath = np.reshape(np.linspace(line[j],path[j,i+1],int(line[-1])+1), (int(line[-1])+1),1)
             else:
-                linpath = np.concatenate((linpath, np.reshape(np.linspace(line[j],path[i+1][j],int(line[-1])+1), (1,int(line[-1])+1))), axis=0)
-        linpath = np.concatenate((linpath, np.ones((1,int(line[-1])+1))),axis=0)
+                linpath = np.concatenate((linpath, np.reshape(np.linspace(line[j],path[j,i+1],int(line[-1])+1), (int(line[-1])+1,1))), axis=1)
+        linpath = np.concatenate((linpath, np.ones((int(line[-1])+1),1)),axis=1)
         if i == 0:
-            for j in range(np.shape(linpath)[1]):
-                epath.append(list(linpath[:,j]))
+            epath = linpath 
         else:
-            for j in range(np.shape(linpath)[1]-1):
-                epath.append(list(linpath[:,j+1]))
+            epath = np.concatenate((epath, linpath), axis = 0)
     return epath
 
 def unique(closest):
     unique = []
-    for line in closest:
+    for line in closest.T:
         there = False
         for check in unique:
             if all(check == line):
@@ -37,7 +35,7 @@ def unique(closest):
                 break
         if not there:
             unique.append(line)
-    return np.array(unique)
+    return np.array(unique).T
 
 def approx(i, vec):
     if i:
@@ -46,36 +44,36 @@ def approx(i, vec):
         return np.floor(vec+tol)
 
 def closest_box(path, rsc, irsc):
-    epath = np.array(explicit_path(path))*np.pi*2 # explicit_path
-    epathrc = epath[:,0:3].dot(irsc) # explicit_reciprocal_path
+    epath = explicit_path(path)*np.pi*2 # explicit_path
+    epathrc = irsc.dot(epath[0:3,:]) # explicit_reciprocal_path
 
     closest = [] 
     for i in range(2):
         for j in range(2):
             for k in range(2):
-                closest.append(np.concatenate((approx(i,epathrc[:,0:1]), approx(j,epathrc[:,1:2]), approx(k,epathrc[:,2:3])), axis=1))
+                closest.append(np.concatenate((approx(i,epathrc[0:1,:]), approx(j,epathrc[1:2,:]), approx(k,epathrc[2:3, :])), axis=0))
 
-    newpath = unique(np.concatenate(closest, axis=0)).dot(rsc)/ (np.pi*2)
+    newpath = unique(rsc.dot(np.concatenate(closest, axis=1)))/ (np.pi*2)
 
-    return np.concatenate((newpath, np.ones((np.shape(newpath)[0],1))), axis=1).tolist() #Adding ones for QE
+    return np.concatenate((newpath, np.ones((1,np.shape(newpath)[0]))), axis=0) #Adding ones for QE
 
 def on_path(path, rsc, irsc):
-    epath = np.array(explicit_path(path))*np.pi*2
-    epathrc = epath[:,0:3].dot(irsc)
+    epath = explicit_path(path)*np.pi*2
+    epathrc = irsc.dot(epath[0:3,:])
     
-    npts = np.array(path)[:,3]
-    path = np.array(path)[:,:3]
+    npts = path[3,:]
+    path = path[:3,:]
 
-    closest_points = unique(np.round(epathrc)).dot(rsc) / (2*np.pi)
+    closest_points = rsc.dot(unique(np.round(epathrc))) / (2*np.pi)
     onpath = []
-    for i,v in enumerate(path[:-1,:]):
+    for i,v in enumerate(path[:,:-1].T):
         if npts[i] > 1:
-            for p in closest_points:
+            for p in closest_points.T:
                 isonpath = True
                 t = []
                 for j in range(3):
-                    if abs((path[i+1][j]-v[j])) >= tol: # make sure there is no division by zero
-                        t.append((p[j]-v[j])/(path[i+1][j]-v[j]))
+                    if abs((path[j, i+1]-v[j])) >= tol: # make sure there is no division by zero
+                        t.append((p[j]-v[j])/(path[j, i+1]-v[j]))
                     else:
                         if abs((p[j]-v[j])) >= tol: # if so, check if nominator is near 0
                             isonpath = False
@@ -90,7 +88,7 @@ def on_path(path, rsc, irsc):
                             isonpath = False
             
                 # Includes the last point on the path
-                if i == np.shape(path)[0] - 2:
+                if i == np.shape(path)[1] - 2:
                     mul = 1
                 else:
                     mul = -1
@@ -103,26 +101,26 @@ def on_path(path, rsc, irsc):
                 if isonpath:
                     onpath.append(list(p))
 
-    newpath = unique(np.array(onpath)) 
+    newpath = unique(onpath.T) 
          
-    return np.concatenate((newpath, np.ones((np.shape(newpath)[0],1))), axis=1).tolist() #Adding ones for QE
+    return np.concatenate((newpath, np.ones((1, np.shape(newpath)[1]))), axis=0) #Adding ones for QE
          
 
 def on_path_plot(path, rsc, irsc):
-    epath = np.array(explicit_path(path))*np.pi*2
-    epathrc = epath[:,0:3].dot(irsc)
+    epath = explicit_path(path)*np.pi*2
+    epathrc = irsc.dot(epath[0:3,:])
     
-    npts = np.array(path)[:,3]
-    path = np.array(path)[:,:3]
+    npts = path[3,:]
+    path = path[:3,:]
     
-    closest_points = unique(np.round(epathrc)).dot(rsc) / (2*np.pi)
+    closest_points = rsc.dot(unique(np.round(epathrc))) / (2*np.pi)
     onpath = []
     dist_on_path = 0
     syms = [0] # list of positions on path of the high symmerty points
     pos_on_path = []
-    for i,v in enumerate(path[:-1,:]):
+    for i,v in enumerate(path[:,:-1].T):
         if npts[i] > 1:
-            for p in closest_points:
+            for p in closest_points.T:
                isonpath = True
                t = []
                for j in range(3):
@@ -142,7 +140,7 @@ def on_path_plot(path, rsc, irsc):
                            isonpath = False
             
                # Includes the last point on the path
-               if i == np.shape(path)[0] - 2:
+               if i == np.shape(path)[1] - 2:
                    mul = 1
                else:
                    mul = -1
@@ -167,58 +165,58 @@ def on_path_plot(path, rsc, irsc):
             dist_on_path += np.linalg.norm(path[i+1]-v)
             syms.append(dist_on_path)
                  
-    newpath = np.array(onpath) 
+    newpath = onpath.T 
          
-    return (np.concatenate((newpath, np.ones((np.shape(newpath)[0],1))), axis=1).tolist(),
+    return (np.concatenate((newpath, np.ones((1,np.shape(newpath)[1]))), axis=0),
             pos_on_path, syms) #Adding ones for QE
 
 def all_points(rpc, irpc, rsc, irsc):
     # big square
     # Finds the furthest corner
-    corner = np.array([[0,0,0]])
+    corner = np.array([[0,0,0]]).T
     for i in range(2):
         for j in range(2):
             for k in range (2):
-                corner = np.reshape(np.max(np.concatenate([abs(np.array([[i,j,k]]).dot(rpc).dot(irsc)), corner], axis=0), axis=0),(1,3))
+                corner = np.reshape(np.max(np.concatenate([abs(irsc.dot(rpc).dot(np.array([[i,j,k]]).T)), corner], axis=1), axis=1),(3,1))
     
     corner = abs(np.ceil(corner)).astype(int)
     
     list_in = []
     for i in range(-corner[0,0], corner[0,0]):
-        for j in range(-corner[0,1], corner[0,1]):
-            for k in range (-corner[0,2], corner[0,2]):
-                p = np.array([i,j,k]).dot(rsc)
-                if (p.dot(irpc) >= -0.5 - tol).all() and (p.dot(irpc) < 0.5 - tol).all():
+        for j in range(-corner[1,0], corner[1,0]):
+            for k in range (-corner[2,0], corner[2,0]):
+                p = rsc.dot(np.array([i,j,k]).T)
+                if (irpc.dot(p) >= 0. - tol).all() and (irpc.dot(p) < 1. - tol).all():
                     list_in.append(p.tolist())
     
-    list_in = np.array(list_in) / (2*np.pi)
+    list_in = np.array(list_in).T / (2*np.pi)
 
-    return np.concatenate((list_in, np.ones((np.shape(list_in)[0],1))), axis=1).tolist() #Adding ones for QE
+    return np.concatenate((list_in, np.ones((1, np.shape(list_in)[1]))), axis=0).T #Adding ones for QE
 
 def derivative_points(path, rsc):
-    q = np.array(explicit_path(path))[:,:3] * 2 * np.pi
+    q = explicit_path(path)[:3,:] * 2 * np.pi
     
     coef = np.array([-2, -1, 1, 2])
     
-    for iq, qp in enumerate(q):
+    for iq, qp in enumerate(q.T):
         # For each dimention... 
         for i in range(3):
-            q_disp = np.zeros((4,3))
+            q_disp = np.zeros((3,4))
             q_bool = [False]*4
             for k, mul in enumerate(coef):
                 # ...finds the 2 nearest neighbors in each direction
-                q_disp[k,:] = qp + mul*rsc[i,:]
+                q_disp[:,k] = qp + mul*rsc[:,i]
     
             # Check if the neighbors are already in the list
             for j in range(len(q)):
                 for k, mul in enumerate(coef):
-                    if np.linalg.norm(q_disp[k,:] - q[j,:]) <= tol:
+                    if np.linalg.norm(q_disp[:,k] - q[:,j]) <= tol:
                         q_bool[k] = True
     
             # If none of the nieghbors is present...
             if not any(q_bool):
                 # ..adds the symmetric ones
-                q = np.concatenate((q,q_disp[1:3,:]), axis = 0)
+                q = np.concatenate((q.T,q_disp[:,1:3]), axis = 1)
 
             # If one or more neighbor is present but not next to eachother
             elif not any([a and b for a, b in zip(q_bool[:3], q_bool[1:])]):
@@ -227,13 +225,13 @@ def derivative_points(path, rsc):
                 q_ind = np.where(q_bool)[0][q_ind]
                 # Adds the symmetric neighbor in priority
                 if q_ind < 2:
-                    q = np.concatenate((q,[q_disp[q_ind+1,:]]), axis = 0)
+                    q = np.concatenate((q.T,[q_disp[:, q_ind+1]]), axis = 1)
                 else:
-                    q = np.concatenate((q,[q_disp[q_ind-1,:]]), axis = 0)
+                    q = np.concatenate((q.T,[q_disp[:, q_ind-1]]), axis = 1)
     
-    return np.concatenate((q/(2*np.pi), np.ones((np.shape(q)[0],1))), axis=1).tolist()
+    return np.concatenate((q.T/(2*np.pi), np.ones((1, np.shape(q)[1]))), axis=0)
 
 def to_relaxed_coord(path, irpc_perfect, rpc):
-    weights = np.array(path)[:,3:4]
-    path = np.array(path)[:,:3].dot(irpc_perfect).dot(rpc)
-    return np.concatenate((path, weights), axis=1).tolist()
+    weights = np.array(path)[3:4,:]
+    path = rpc.dot(irpc_perfect).dot(path[:3,:])
+    return np.concatenate((path, weights), axis=0)
