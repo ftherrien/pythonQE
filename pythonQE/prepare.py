@@ -12,17 +12,17 @@ def reciprocal(cell):
 
 def explicit_path(path):
     epath = []
-    for i,line in enumerate(path[:-1].T):
+    for i,line in enumerate(path[:,:-1].T):
         for j in range(len(line))[:-1]:
             if j == 0:
-                linpath = np.reshape(np.linspace(line[j],path[j,i+1],int(line[-1])+1), (int(line[-1])+1),1)
+                linpath = np.reshape(np.linspace(line[j],path[j,i+1],int(line[-1])+1), (1,int(line[-1])+1))
             else:
-                linpath = np.concatenate((linpath, np.reshape(np.linspace(line[j],path[j,i+1],int(line[-1])+1), (int(line[-1])+1,1))), axis=1)
-        linpath = np.concatenate((linpath, np.ones((int(line[-1])+1),1)),axis=1)
+                linpath = np.concatenate((linpath, np.reshape(np.linspace(line[j],path[j,i+1],int(line[-1])+1), (1,int(line[-1])+1))), axis=0)
+        linpath = np.concatenate((linpath, np.ones((1,int(line[-1])+1))),axis=0)
         if i == 0:
             epath = linpath 
         else:
-            epath = np.concatenate((epath, linpath), axis = 0)
+            epath = np.concatenate((epath, linpath), axis = 1)
     return epath
 
 def unique(closest):
@@ -101,10 +101,10 @@ def on_path(path, rsc, irsc):
                 if isonpath:
                     onpath.append(list(p))
 
-    newpath = unique(onpath.T) 
+    newpath = unique(np.array(onpath).T) 
          
     return np.concatenate((newpath, np.ones((1, np.shape(newpath)[1]))), axis=0) #Adding ones for QE
-         
+
 
 def on_path_plot(path, rsc, irsc):
     epath = explicit_path(path)*np.pi*2
@@ -191,7 +191,7 @@ def all_points(rpc, irpc, rsc, irsc):
     
     list_in = np.array(list_in).T / (2*np.pi)
 
-    return np.concatenate((list_in, np.ones((1, np.shape(list_in)[1]))), axis=0).T #Adding ones for QE
+    return np.concatenate((list_in, np.ones((1, np.shape(list_in)[1]))), axis=0) # Adding ones for QE
 
 def derivative_points(path, rsc):
     q = explicit_path(path)[:3,:] * 2 * np.pi
@@ -205,10 +205,10 @@ def derivative_points(path, rsc):
             q_bool = [False]*4
             for k, mul in enumerate(coef):
                 # ...finds the 2 nearest neighbors in each direction
-                q_disp[:,k] = qp + mul*rsc[:,i]
+                q_disp[:,k] = qp.T + mul*rsc[:,i]
     
             # Check if the neighbors are already in the list
-            for j in range(len(q)):
+            for j in range(len(q.T)):
                 for k, mul in enumerate(coef):
                     if np.linalg.norm(q_disp[:,k] - q[:,j]) <= tol:
                         q_bool[k] = True
@@ -216,7 +216,7 @@ def derivative_points(path, rsc):
             # If none of the nieghbors is present...
             if not any(q_bool):
                 # ..adds the symmetric ones
-                q = np.concatenate((q.T,q_disp[:,1:3]), axis = 1)
+                q = np.concatenate((q,q_disp[:,1:3]), axis = 1)
 
             # If one or more neighbor is present but not next to eachother
             elif not any([a and b for a, b in zip(q_bool[:3], q_bool[1:])]):
@@ -225,11 +225,11 @@ def derivative_points(path, rsc):
                 q_ind = np.where(q_bool)[0][q_ind]
                 # Adds the symmetric neighbor in priority
                 if q_ind < 2:
-                    q = np.concatenate((q.T,[q_disp[:, q_ind+1]]), axis = 1)
+                    q = np.concatenate((q,q_disp[:, q_ind+1:q_ind+2]), axis = 1)
                 else:
-                    q = np.concatenate((q.T,[q_disp[:, q_ind-1]]), axis = 1)
+                    q = np.concatenate((q,q_disp[:, q_ind-1:q_ind]), axis = 1)
     
-    return np.concatenate((q.T/(2*np.pi), np.ones((1, np.shape(q)[1]))), axis=0)
+    return np.concatenate((q/(2*np.pi), np.ones((1, np.shape(q)[1]))), axis=0)
 
 def to_relaxed_coord(path, irpc_perfect, rpc):
     weights = np.array(path)[3:4,:]

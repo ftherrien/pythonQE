@@ -69,14 +69,14 @@ class pwcalc:
                                ' '.join([fl2str(i) for i in atom]) + '\n')
                 
         cell = ""
-        for line in self.cell:
+        for line in self.cell.T:
             cell += ' '.join([fl2str(i) for i in line]) + '\n'
         
         s = re.sub("{nat}", int2str(nat), s)
         s = re.sub("{ntyp}", int2str(ntyp), s)
         s = re.sub("{wmass}", fl2str(wmass), s)
         s = re.sub("{atomic species}", atomic_spec, s)
-        s = re.sub("{cell param}", cell.T, s)
+        s = re.sub("{cell param}", cell, s)
         s = re.sub("{atomic positions}", atomic_pos, s)
         s = re.sub("{k points}", ' '.join([int2str(i) for i in self.kpoints]), s)
 
